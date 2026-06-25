@@ -1,2 +1,0 @@
-{"id":"cmd_git_head","command":"git rev-parse HEAD","exitCode":0,"stdout":"91a12fe..."}
-{"id":"cmd_tree","command":"find release-public -type f","exitCode":0,"stdout":"README.md\ndist/index.js\ndist/cli.js"}

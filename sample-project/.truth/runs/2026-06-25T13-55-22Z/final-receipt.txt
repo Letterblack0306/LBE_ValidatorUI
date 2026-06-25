@@ -1,5 +1,0 @@
-BLOCKED
-
-FAIL public repo fresh clone mismatch
-PASS README exists
-PASS forbidden-pattern scan
