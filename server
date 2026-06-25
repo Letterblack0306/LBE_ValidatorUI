@@ -1,7 +1,6 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import fssync from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -118,44 +117,6 @@ function makeProjectId(name, existingProjects = []) {
   return `${base}-${i}`;
 }
 
-function pathListFromEnv(value) {
-  return String(value || '')
-    .split(path.delimiter)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function projectFromRoot(rootValue, index = 0) {
-  const root = path.resolve(rootValue);
-  const name = path.basename(root) || root;
-  const suffix = index ? `-${index + 1}` : '';
-  const idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
-  return {
-    id: `${idBase}${suffix}`,
-    name,
-    root,
-    truth: null,
-    raw: { source: 'runtime' }
-  };
-}
-
-function runtimeProjects() {
-  const roots = [
-    ...pathListFromEnv(process.env.PROJECT_ROOTS),
-    ...pathListFromEnv(process.env.PROJECT_ROOT),
-    process.cwd()
-  ];
-  const seen = new Set();
-  return roots
-    .map((root) => path.resolve(root))
-    .filter((root) => {
-      const key = process.platform === 'win32' ? root.toLowerCase() : root;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map(projectFromRoot);
-}
 function loadableProjectFromConfigEntry(p, index) {
   const root = normalizeLocalPath(p.root, __dirname);
   const truth = p.truth ? normalizeLocalPath(p.truth, __dirname) : null;
@@ -179,7 +140,6 @@ async function readConfig() {
 
 async function loadConfig() {
   const config = await readConfig();
-  if (!config.projects.length) return runtimeProjects();
   return config.projects.map(loadableProjectFromConfigEntry);
 }
 
@@ -581,48 +541,6 @@ async function listProjectsForApi() {
   }));
 }
 
-function uniquePaths(paths) {
-  const seen = new Set();
-  return paths.filter((item) => {
-    const key = process.platform === 'win32' ? item.toLowerCase() : item;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-async function listDirectorySuggestions(inputPath) {
-  const value = String(inputPath || '').trim();
-  if (!value) {
-    const projects = await loadConfig();
-    const roots = [
-      ...projects.map((project) => project.root),
-      process.cwd(),
-      os.homedir()
-    ];
-    return uniquePaths(roots.map((root) => path.resolve(root))).slice(0, 40);
-  }
-
-  const normalized = path.resolve(value);
-  let baseDir = normalized;
-  let partial = '';
-
-  if (!(await exists(baseDir))) {
-    baseDir = path.dirname(normalized);
-    partial = path.basename(normalized).toLowerCase();
-  }
-
-  if (!(await exists(baseDir))) return [];
-
-  const entries = await fs.readdir(baseDir, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(baseDir, entry.name))
-    .filter((dir) => !partial || path.basename(dir).toLowerCase().startsWith(partial))
-    .sort((a, b) => a.localeCompare(b))
-    .slice(0, 40);
-}
-
 async function readRequestJson(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -653,6 +571,45 @@ async function deleteProject(res, id) {
   if (after.length === before.length) return json(res, 404, { error: 'Project not found' });
   await writeJson(CONFIG_PATH, { projects: after });
   return json(res, 200, { ok: true });
+}
+
+async function listDirectorySuggestions(rawPath) {
+  const suggestions = [];
+
+  if (process.platform === 'win32' && !rawPath) {
+    for (let c = 65; c <= 90; c += 1) {
+      const drive = `${String.fromCharCode(c)}:/`;
+      if (await exists(drive)) suggestions.push(drive);
+    }
+    return suggestions;
+  }
+
+  const normalized = rawPath ? String(rawPath).replace(/\\/g, '/') : '';
+  let base;
+  let prefix = '';
+
+  if (!normalized) {
+    base = process.platform === 'win32' ? process.cwd().slice(0, 3) : '/';
+  } else if (await isDirectory(normalizeLocalPath(normalized, process.cwd()))) {
+    base = normalizeLocalPath(normalized, process.cwd());
+  } else {
+    base = normalizeLocalPath(path.dirname(normalized), process.cwd());
+    prefix = path.basename(normalized).toLowerCase();
+  }
+
+  let entries = [];
+  try {
+    entries = await fs.readdir(base, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .filter((entry) => !entry.name.startsWith('$'))
+    .filter((entry) => !prefix || entry.name.toLowerCase().startsWith(prefix))
+    .slice(0, 60)
+    .map((entry) => toPosixPath(path.join(base, entry.name)));
 }
 
 async function serveStatic(req, res, pathname) {
@@ -732,5 +689,3 @@ server.listen(PORT, HOST, () => {
   console.log(`LetterBlack Truth Console running at http://${HOST}:${PORT}`);
   console.log(`Config: ${CONFIG_PATH}`);
 });
-
-

@@ -172,6 +172,9 @@ function mergeConfig(base, args) {
   if (args.forbidden) cli.forbiddenPatterns = String(args.forbidden).split(',').map((s) => s.trim()).filter(Boolean);
   if (args['allow-dirty']) cli.allowDirty = true;
   if (args['max-scan-bytes']) cli.maxScanBytes = Number(args['max-scan-bytes']);
+  if (args['timeout-ms']) cli.commandTimeoutMs = Number(args['timeout-ms']);
+  if (args['build-timeout-ms']) cli.buildTimeoutMs = Number(args['build-timeout-ms']);
+  if (args['clone-timeout-ms']) cli.cloneTimeoutMs = Number(args['clone-timeout-ms']);
 
   return {
     project: path.basename(process.cwd()),
@@ -184,6 +187,10 @@ function mergeConfig(base, args) {
     allowDirty: false,
     maxScanBytes: 2_000_000,
     cloneDepth: 1,
+    commandTimeoutMs: 120_000,
+    buildTimeoutMs: 600_000,
+    cloneTimeoutMs: 300_000,
+    maxOutputBytes: 2_000_000,
     ...base,
     ...cli
   };
@@ -281,18 +288,23 @@ class ProofSession {
     this.commandIndex += 1;
     const id = String(this.commandIndex).padStart(3, '0');
     const cwd = opts.cwd || this.root;
-    const parts = splitCommand(command);
-    const commandDisplay = Array.isArray(command) ? command.join(' ') : command;
-    const stdoutFile = path.join(this.stdoutDir, `${id}-${opts.name || parts[0] || 'command'}.txt`.replace(/[^a-zA-Z0-9_.-]/g, '_'));
-    const stderrFile = path.join(this.stderrDir, `${id}-${opts.name || parts[0] || 'command'}.txt`.replace(/[^a-zA-Z0-9_.-]/g, '_'));
+    const commandDisplay = Array.isArray(command) ? command.join(' ') : String(command || '');
+    const safeName = `${id}-${opts.name || (Array.isArray(command) ? command[0] : 'command') || 'command'}`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const stdoutFile = path.join(this.stdoutDir, `${safeName}.txt`);
+    const stderrFile = path.join(this.stderrDir, `${safeName}.txt`);
 
-    if (!parts.length) {
+    const timeoutMs = Number(opts.timeoutMs || this.config.commandTimeoutMs || 120_000);
+    const maxOutputBytes = Number(this.config.maxOutputBytes || 2_000_000);
+
+    if (!commandDisplay.trim()) {
       const record = {
         id,
         command: commandDisplay,
         cwd,
         exitCode: null,
         status: 'SKIPPED',
+        timedOut: false,
+        timeoutMs,
         startedAt,
         finishedAt: nowIso(),
         stdoutFile: relPath(stdoutFile, this.runDir),
@@ -302,33 +314,79 @@ class ProofSession {
       return { ...record, stdout: '', stderr: '' };
     }
 
-    const [cmd, ...args] = parts;
+    const useArray = Array.isArray(command);
+    const cmd = useArray ? command[0] : commandDisplay;
+    const args = useArray ? command.slice(1) : [];
+    const spawnOptions = {
+      cwd,
+      shell: !useArray,
+      env: { ...process.env, ...opts.env },
+      windowsHide: true
+    };
+
     let stdout = '';
     let stderr = '';
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
     let exitCode = null;
     let errorMessage = null;
+    let timedOut = false;
+    let truncatedStdout = false;
+    let truncatedStderr = false;
 
     await new Promise((resolve) => {
-      const child = spawn(cmd, args, {
-        cwd,
-        shell: process.platform === 'win32',
-        env: { ...process.env, ...opts.env }
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      };
+
+      const child = spawn(cmd, args, spawnOptions);
+      const timer = setTimeout(() => {
+        timedOut = true;
+        errorMessage = `Command timed out after ${timeoutMs} ms`;
+        try { child.kill('SIGTERM'); } catch {}
+        setTimeout(() => {
+          if (exitCode === null) {
+            try { child.kill('SIGKILL'); } catch {}
+          }
+        }, 1500).unref?.();
+      }, timeoutMs);
+
+      child.stdout?.on('data', (chunk) => {
+        const text = chunk.toString();
+        stdoutBytes += Buffer.byteLength(text, 'utf8');
+        if (stdoutBytes <= maxOutputBytes) stdout += text;
+        else truncatedStdout = true;
       });
-      child.stdout?.on('data', (chunk) => { stdout += chunk.toString(); });
-      child.stderr?.on('data', (chunk) => { stderr += chunk.toString(); });
+
+      child.stderr?.on('data', (chunk) => {
+        const text = chunk.toString();
+        stderrBytes += Buffer.byteLength(text, 'utf8');
+        if (stderrBytes <= maxOutputBytes) stderr += text;
+        else truncatedStderr = true;
+      });
+
       child.on('error', (err) => {
         errorMessage = err.message;
         exitCode = -1;
-        resolve();
+        finish();
       });
+
       child.on('close', (code) => {
-        exitCode = code;
-        resolve();
+        exitCode = timedOut ? -1 : code;
+        finish();
       });
     });
 
+    if (truncatedStdout) stdout += `\n[TRUNCATED: stdout exceeded ${maxOutputBytes} bytes]\n`;
+    if (truncatedStderr) stderr += `\n[TRUNCATED: stderr exceeded ${maxOutputBytes} bytes]\n`;
+    if (errorMessage) stderr += `\n${errorMessage}\n`;
+
     await fs.writeFile(stdoutFile, stdout, 'utf8');
-    await fs.writeFile(stderrFile, stderr + (errorMessage ? `\n${errorMessage}\n` : ''), 'utf8');
+    await fs.writeFile(stderrFile, stderr, 'utf8');
 
     const record = {
       id,
@@ -336,6 +394,8 @@ class ProofSession {
       cwd,
       exitCode,
       status: exitCode === 0 ? 'PASS' : 'FAIL',
+      timedOut,
+      timeoutMs,
       startedAt,
       finishedAt: nowIso(),
       stdoutFile: relPath(stdoutFile, this.runDir),
@@ -409,7 +469,7 @@ class ProofSession {
       });
       return;
     }
-    const result = await this.runCommand(this.config.buildCommand, { name: 'build' });
+    const result = await this.runCommand(this.config.buildCommand, { name: 'build', timeoutMs: this.config.buildTimeoutMs });
     this.addCheck({
       id: 'build_public',
       label: 'Public build completed',
@@ -593,7 +653,8 @@ class ProofSession {
     this.publicCloneDir = path.join(tempRoot, 'public-clone');
     const clone = await this.runCommand(['git', 'clone', `--depth=${this.config.cloneDepth || 1}`, this.config.publicRepo, this.publicCloneDir], {
       name: 'public-clone',
-      cwd: this.root
+      cwd: this.root,
+      timeoutMs: this.config.cloneTimeoutMs
     });
     this.addCheck({
       id: 'public_repo_fresh_clone',
@@ -766,3 +827,4 @@ main().catch((err) => {
   process.stderr.write(`proof-session failed: ${err.stack || err.message}\n`);
   process.exitCode = 1;
 });
+

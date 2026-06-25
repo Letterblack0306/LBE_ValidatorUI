@@ -1,0 +1,30 @@
+TRUTH SESSION BLOCKED
+
+Project: LBE_ValidatorUI
+Run ID: 2026-06-25T13-08-14-504Z
+Root: H:\LBE_ValidatorUI
+Branch: main
+Source HEAD: f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db
+Remote HEAD: f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db
+Public HEAD: UNKNOWN
+Started: 2026-06-25T13:08:14.504Z
+Finished: 2026-06-25T13:08:16.939Z
+
+Checks: 9
+Failures: 3
+Warnings: 2
+
+FAILED CHECKS:
+- git_clean: Working tree clean
+- release_dir_exists: Release directory exists
+- readme_exists: Public README exists
+
+WARNINGS:
+- build_command: Build command configured
+- public_repo_configured: Public repo configured
+
+Summary: .truth/runs/2026-06-25T13-08-14-504Z/summary.json
+Commands: .truth/runs/2026-06-25T13-08-14-504Z/commands.jsonl
+Files: .truth/runs/2026-06-25T13-08-14-504Z/files.jsonl
+Hashes: .truth/runs/2026-06-25T13-08-14-504Z/hashes.jsonl
+

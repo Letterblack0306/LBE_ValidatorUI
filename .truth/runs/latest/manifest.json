@@ -1,0 +1,10 @@
+{
+  "schema": "truth.manifest.v1",
+  "runId": "2026-06-25T13-08-14-504Z",
+  "project": "LBE_ValidatorUI",
+  "root": "H:\\LBE_ValidatorUI",
+  "releaseDir": "H:\\LBE_ValidatorUI\\release-public",
+  "publicRepo": null,
+  "startedAt": "2026-06-25T13:08:14.504Z",
+  "tool": "proof-session.mjs"
+}

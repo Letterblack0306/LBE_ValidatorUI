@@ -1,0 +1,301 @@
+{
+  "schema": "truth.summary.v1",
+  "project": "LBE_ValidatorUI",
+  "runId": "2026-06-25T13-08-14-504Z",
+  "status": "BLOCKED",
+  "sourceHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+  "remoteHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+  "publicHead": null,
+  "branch": "main",
+  "repo": null,
+  "root": "H:\\LBE_ValidatorUI",
+  "releaseDir": "H:\\LBE_ValidatorUI\\release-public",
+  "startedAt": "2026-06-25T13:08:14.504Z",
+  "finishedAt": "2026-06-25T13:08:16.939Z",
+  "checks": [
+    {
+      "id": "git_head",
+      "label": "Git HEAD readable",
+      "status": "PASS",
+      "parent": null,
+      "targetAction": "read_source_head",
+      "connectedTo": {},
+      "evidence": {
+        "commandId": "001",
+        "stdoutFile": "stdout/001-git-head.txt",
+        "stderrFile": "stderr/001-git-head.txt"
+      },
+      "details": {
+        "sourceHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db"
+      },
+      "moduleId": "git_head"
+    },
+    {
+      "id": "git_branch",
+      "label": "Git branch readable",
+      "status": "PASS",
+      "parent": "git_head",
+      "targetAction": "read_branch",
+      "connectedTo": {},
+      "evidence": {
+        "commandId": "002",
+        "stdoutFile": "stdout/002-git-branch.txt",
+        "stderrFile": "stderr/002-git-branch.txt"
+      },
+      "details": {
+        "branch": "main"
+      },
+      "moduleId": "git_branch"
+    },
+    {
+      "id": "git_clean",
+      "label": "Working tree clean",
+      "status": "FAIL",
+      "parent": "git_head",
+      "targetAction": "verify_clean_worktree",
+      "connectedTo": {},
+      "evidence": {
+        "commandId": "003",
+        "stdoutFile": "stdout/003-git-status.txt",
+        "stderrFile": "stderr/003-git-status.txt"
+      },
+      "details": {
+        "dirty": true,
+        "statusShort": "M config/projects.json"
+      },
+      "moduleId": "git_clean"
+    },
+    {
+      "id": "git_remote_head",
+      "label": "Remote HEAD matches local HEAD",
+      "status": "PASS",
+      "parent": "git_head",
+      "targetAction": "verify_remote_head",
+      "connectedTo": {},
+      "evidence": {
+        "commandId": "004",
+        "stdoutFile": "stdout/004-git-remote-head.txt",
+        "stderrFile": "stderr/004-git-remote-head.txt"
+      },
+      "details": {
+        "sourceHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+        "remoteHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+        "remoteMatches": true
+      },
+      "moduleId": "git_remote_head"
+    },
+    {
+      "id": "build_command",
+      "label": "Build command configured",
+      "status": "WARN",
+      "parent": null,
+      "targetAction": "build_public_release",
+      "connectedTo": {},
+      "evidence": null,
+      "details": {
+        "reason": "No build command configured. Use --build \"npm run build:public-sdk\" or .truth/proof.config.json."
+      },
+      "moduleId": "build_command"
+    },
+    {
+      "id": "release_dir_exists",
+      "label": "Release directory exists",
+      "status": "FAIL",
+      "parent": "build_command",
+      "targetAction": "open_release_directory",
+      "connectedTo": {},
+      "evidence": "release-public",
+      "details": {
+        "releaseDir": "H:\\LBE_ValidatorUI\\release-public"
+      },
+      "moduleId": "release_dir_exists"
+    },
+    {
+      "id": "readme_exists",
+      "label": "Public README exists",
+      "status": "FAIL",
+      "parent": "release_files_listed",
+      "targetAction": "verify_public_readme",
+      "connectedTo": {},
+      "evidence": null,
+      "details": {
+        "candidates": [
+          "README.md",
+          "readme.md",
+          "README.txt"
+        ]
+      },
+      "moduleId": "readme_exists"
+    },
+    {
+      "id": "forbidden_pattern_scan",
+      "label": "Forbidden/private pattern scan",
+      "status": "PASS",
+      "parent": "release_files_hashed",
+      "targetAction": "scan_public_boundary",
+      "connectedTo": {},
+      "evidence": "forbidden-findings.json",
+      "details": {
+        "findingCount": 0,
+        "skippedCount": 0
+      },
+      "moduleId": "forbidden_pattern_scan"
+    },
+    {
+      "id": "public_repo_configured",
+      "label": "Public repo configured",
+      "status": "WARN",
+      "parent": "forbidden_pattern_scan",
+      "targetAction": "fresh_clone_public_repo",
+      "connectedTo": {},
+      "evidence": null,
+      "details": {
+        "reason": "No public repo configured. Use --public-repo <url> or PUBLIC_REPO_URL."
+      },
+      "moduleId": "public_repo_configured"
+    }
+  ],
+  "modules": [
+    {
+      "moduleId": "git_head",
+      "label": "Git HEAD readable",
+      "type": "proof_check",
+      "parent": null,
+      "targetAction": "read_source_head",
+      "connectedTo": {},
+      "status": "PASS",
+      "evidence": {
+        "commandId": "001",
+        "stdoutFile": "stdout/001-git-head.txt",
+        "stderrFile": "stderr/001-git-head.txt"
+      },
+      "details": {
+        "sourceHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db"
+      }
+    },
+    {
+      "moduleId": "git_branch",
+      "label": "Git branch readable",
+      "type": "proof_check",
+      "parent": "git_head",
+      "targetAction": "read_branch",
+      "connectedTo": {},
+      "status": "PASS",
+      "evidence": {
+        "commandId": "002",
+        "stdoutFile": "stdout/002-git-branch.txt",
+        "stderrFile": "stderr/002-git-branch.txt"
+      },
+      "details": {
+        "branch": "main"
+      }
+    },
+    {
+      "moduleId": "git_clean",
+      "label": "Working tree clean",
+      "type": "proof_check",
+      "parent": "git_head",
+      "targetAction": "verify_clean_worktree",
+      "connectedTo": {},
+      "status": "FAIL",
+      "evidence": {
+        "commandId": "003",
+        "stdoutFile": "stdout/003-git-status.txt",
+        "stderrFile": "stderr/003-git-status.txt"
+      },
+      "details": {
+        "dirty": true,
+        "statusShort": "M config/projects.json"
+      }
+    },
+    {
+      "moduleId": "git_remote_head",
+      "label": "Remote HEAD matches local HEAD",
+      "type": "proof_check",
+      "parent": "git_head",
+      "targetAction": "verify_remote_head",
+      "connectedTo": {},
+      "status": "PASS",
+      "evidence": {
+        "commandId": "004",
+        "stdoutFile": "stdout/004-git-remote-head.txt",
+        "stderrFile": "stderr/004-git-remote-head.txt"
+      },
+      "details": {
+        "sourceHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+        "remoteHead": "f3e59b2b1bf5cfa725db2e5ac5c80a2d737c62db",
+        "remoteMatches": true
+      }
+    },
+    {
+      "moduleId": "build_command",
+      "label": "Build command configured",
+      "type": "proof_check",
+      "parent": null,
+      "targetAction": "build_public_release",
+      "connectedTo": {},
+      "status": "WARN",
+      "evidence": null,
+      "details": {
+        "reason": "No build command configured. Use --build \"npm run build:public-sdk\" or .truth/proof.config.json."
+      }
+    },
+    {
+      "moduleId": "release_dir_exists",
+      "label": "Release directory exists",
+      "type": "proof_check",
+      "parent": "build_command",
+      "targetAction": "open_release_directory",
+      "connectedTo": {},
+      "status": "FAIL",
+      "evidence": "release-public",
+      "details": {
+        "releaseDir": "H:\\LBE_ValidatorUI\\release-public"
+      }
+    },
+    {
+      "moduleId": "readme_exists",
+      "label": "Public README exists",
+      "type": "proof_check",
+      "parent": "release_files_listed",
+      "targetAction": "verify_public_readme",
+      "connectedTo": {},
+      "status": "FAIL",
+      "evidence": null,
+      "details": {
+        "candidates": [
+          "README.md",
+          "readme.md",
+          "README.txt"
+        ]
+      }
+    },
+    {
+      "moduleId": "forbidden_pattern_scan",
+      "label": "Forbidden/private pattern scan",
+      "type": "proof_check",
+      "parent": "release_files_hashed",
+      "targetAction": "scan_public_boundary",
+      "connectedTo": {},
+      "status": "PASS",
+      "evidence": "forbidden-findings.json",
+      "details": {
+        "findingCount": 0,
+        "skippedCount": 0
+      }
+    },
+    {
+      "moduleId": "public_repo_configured",
+      "label": "Public repo configured",
+      "type": "proof_check",
+      "parent": "forbidden_pattern_scan",
+      "targetAction": "fresh_clone_public_repo",
+      "connectedTo": {},
+      "status": "WARN",
+      "evidence": null,
+      "details": {
+        "reason": "No public repo configured. Use --public-repo <url> or PUBLIC_REPO_URL."
+      }
+    }
+  ]
+}

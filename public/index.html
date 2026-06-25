@@ -20,6 +20,7 @@
       <section class="panel compact">
         <div class="section-title">Projects</div>
         <div id="projectList" class="project-list"></div>
+        <button id="saveProjectBtn" class="btn primary" style="display:none; margin-top: 6px; width: 100%; font-size: 11px;">+ Save as project</button>
       </section>
 
       <section class="panel compact">
@@ -48,9 +49,16 @@
 
     <main class="main">
       <header class="topbar">
-        <div>
+        <div class="topbar-left">
           <h2 id="projectTitle">No project loaded</h2>
           <div id="projectMeta" class="meta-line">Configure projects in config/projects.json</div>
+        </div>
+        <div class="topbar-path">
+          <div class="path-loader">
+            <input id="customPathInput" class="path-loader-input" placeholder="Paste or type a project folder path…" autocomplete="off" spellcheck="false" />
+            <button id="loadCustomBtn" class="btn small primary">Load</button>
+          </div>
+          <div id="pathSuggestions" class="path-suggestions hidden"></div>
         </div>
         <div id="statusPill" class="status-pill unknown">UNKNOWN</div>
       </header>

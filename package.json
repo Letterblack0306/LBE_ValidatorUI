@@ -1,9 +1,9 @@
 {
   "name": "lbe-validator-ui",
-  "version": "1.0.0",
+  "version": "1.0.1-patch",
   "private": true,
   "type": "module",
-  "description": "Professional release-readiness validator interface and deterministic proof generator.",
+  "description": "Local truth console and deterministic proof-session viewer.",
   "scripts": {
     "start": "node server.mjs",
     "check": "node --check server.mjs && node --check tools/proof-session.mjs",
@@ -12,6 +12,5 @@
   "engines": {
     "node": ">=18"
   },
-  "author": "LetterBlack Development Team",
   "license": "UNLICENSED"
 }

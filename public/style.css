@@ -85,6 +85,16 @@ body {
 }
 
 .project-list { display: grid; gap: 8px; margin-top: 10px; }
+.project-item-wrap { position: relative; display: flex; align-items: stretch; }
+.project-item-wrap .project-item { flex: 1; }
+.btn-remove-project {
+  position: absolute; right: 6px; top: 6px;
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 0 3px; opacity: 0;
+  transition: opacity 0.15s;
+}
+.project-item-wrap:hover .btn-remove-project { opacity: 1; }
+.btn-remove-project:hover { color: #ff5f57; }
 .project-item {
   width: 100%;
   text-align: left;
@@ -134,9 +144,39 @@ body {
 }
 .topbar {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
   align-items: center;
+  gap: 16px;
+}
+.topbar-left { flex-shrink: 0; min-width: 160px; }
+.topbar-path {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+.path-loader {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.path-loader-input {
+  flex: 1;
+  min-width: 0;
+  background: #0b0f16;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  padding: 8px 12px;
+}
+.path-loader-input:focus {
+  outline: none;
+  border-color: rgba(139,233,106,0.5);
+}
+.topbar-path .path-suggestions {
+  top: calc(100% + 4px);
+  left: 0;
+  right: 48px;
 }
 .meta-line { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .status-pill {
@@ -185,6 +225,35 @@ body {
   color: var(--text);
   border-radius: 10px;
   padding: 9px 10px;
+}
+.path-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: #0f1520;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 999;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.path-suggestions.hidden { display: none; }
+.path-suggestion {
+  padding: 7px 12px;
+  font-size: 11px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 8px;
+  margin: 2px 4px;
+}
+.path-suggestion:hover, .path-suggestion.active {
+  background: rgba(139,233,106,0.1);
+  color: #8be96a;
 }
 .canvas-viewport {
   position: relative;

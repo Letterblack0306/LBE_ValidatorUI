@@ -1,6 +1,25 @@
+async function api(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    let detail = `${res.status}: ${res.statusText}`;
+    try {
+      const body = await res.json();
+      if (body.error) {
+        detail = body.error;
+        if (body.checkedPaths?.length) {
+          detail += '\n\nLooked for summary.json at:\n' + body.checkedPaths.join('\n');
+        }
+      }
+    } catch {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 const state = {
   projects: [],
   currentProjectId: null,
+  currentCustomPath: null,
   bundle: null,
   nodes: [],
   edges: [],
@@ -37,7 +56,11 @@ const el = {
   detailsEmpty: document.getElementById('detailsEmpty'),
   detailsContent: document.getElementById('detailsContent'),
   nodeTableBody: document.querySelector('#nodeTable tbody'),
-  rowCount: document.getElementById('rowCount')
+  rowCount: document.getElementById('rowCount'),
+  customPathInput: document.getElementById('customPathInput'),
+  loadCustomBtn: document.getElementById('loadCustomBtn'),
+  saveProjectBtn: document.getElementById('saveProjectBtn'),
+  pathSuggestions: document.getElementById('pathSuggestions')
 };
 
 function statusClass(status) {
@@ -63,46 +86,110 @@ function truncate(value, max = 56) {
   return `${s.slice(0, max - 1)}…`;
 }
 
-async function api(path) {
-  const res = await fetch(path, { cache: 'no-store' });
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || `Request failed: ${res.status}`);
-  return data;
-}
-
 async function loadProjects() {
+  const params = new URLSearchParams(window.location.search);
+  const customPath = params.get('path');
+
   const data = await api('/api/projects');
   state.projects = data.projects || [];
-  renderProjects();
-  if (!state.currentProjectId && state.projects.length) {
-    state.currentProjectId = state.projects[0].id;
+  
+  if (customPath) {
+    state.currentProjectId = 'custom';
+    state.currentCustomPath = customPath;
+    await loadProject('custom', customPath);
+  } else {
+    renderProjects();
+    if (!state.currentProjectId && state.projects.length) {
+      state.currentProjectId = state.projects[0].id;
+    }
+    if (state.currentProjectId) await loadProject(state.currentProjectId);
   }
-  if (state.currentProjectId) await loadProject(state.currentProjectId);
 }
 
 function renderProjects() {
   el.projectList.innerHTML = state.projects.map((project) => {
     const active = project.id === state.currentProjectId ? ' active' : '';
     const status = project.error ? 'ERROR' : (project.status || 'UNKNOWN');
-    return `<button class="project-item${active}" data-project-id="${escapeHtml(project.id)}">
-      <strong>${escapeHtml(project.name)}</strong>
-      <span>${escapeHtml(status)} · ${escapeHtml(project.runId || 'no run')}</span>
-      <span>${escapeHtml(project.root || '')}</span>
-    </button>`;
+    const isCustom = project.id === 'custom';
+    return `<div class="project-item-wrap">
+      <button class="project-item${active}" data-project-id="${escapeHtml(project.id)}" data-custom-path="${escapeHtml(project.customPath || '')}">
+        <strong>${escapeHtml(project.name)}</strong>
+        <span>${escapeHtml(status)} · ${escapeHtml(project.runId || 'no run')}</span>
+        <span>${escapeHtml(project.root || '')}</span>
+      </button>
+      ${!isCustom ? `<button class="btn-remove-project" data-remove-id="${escapeHtml(project.id)}" title="Remove project">×</button>` : ''}
+    </div>`;
   }).join('');
 }
 
-async function loadProject(id) {
+async function saveCurrentAsProject() {
+  const bundle = state.bundle;
+  if (!bundle) return;
+  const defaultName = bundle.project.name || '';
+  const name = prompt('Project name:', defaultName);
+  if (!name || !name.trim()) return;
+  try {
+    const res = await api('/api/projects', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), root: bundle.project.root })
+    });
+    // Replace the ephemeral custom entry with the saved one
+    const idx = state.projects.findIndex((p) => p.id === 'custom');
+    const saved = { id: res.id, name: res.name, root: res.root, status: bundle.summary.status, runId: bundle.summary.runId };
+    if (idx !== -1) state.projects.splice(idx, 1, saved); else state.projects.push(saved);
+    state.currentProjectId = res.id;
+    state.currentCustomPath = null;
+    el.customPathInput.value = '';
+    renderProjects();
+    updateSaveBtn();
+  } catch (err) {
+    alert(`Could not save project: ${err.message}`);
+  }
+}
+
+function updateSaveBtn() {
+  const show = state.currentProjectId === 'custom' && !!state.bundle;
+  el.saveProjectBtn.style.display = show ? '' : 'none';
+}
+
+async function loadProject(id, customPath = null) {
   state.currentProjectId = id;
-  renderProjects();
-  const bundle = await api(`/api/project?id=${encodeURIComponent(id)}`);
+  state.currentCustomPath = customPath;
+
+  const url = customPath
+    ? `/api/project?path=${encodeURIComponent(customPath)}`
+    : `/api/project?id=${encodeURIComponent(id)}`;
+
+  const bundle = await api(url);
   state.bundle = bundle;
+
+  if (customPath) {
+    const existing = state.projects.find((p) => p.id === 'custom');
+    const customProject = {
+      id: 'custom',
+      name: bundle.project.name,
+      root: bundle.project.root,
+      status: bundle.summary.status,
+      runId: bundle.summary.runId,
+      truth: bundle.project.truth,
+      customPath: customPath
+    };
+    if (existing) {
+      Object.assign(existing, customProject);
+    } else {
+      state.projects.unshift(customProject);
+    }
+  }
+
+  renderSummary();
+  renderProjects();
+  updateSaveBtn();
   state.nodes = bundle.graph?.nodes || [];
   state.edges = bundle.graph?.edges || [];
   state.selectedId = null;
   state.positions = layoutNodes(state.nodes, state.edges);
   applyFilter();
-  renderSummary();
   resetView(false);
   renderAll();
 }
@@ -352,15 +439,143 @@ function resetView(render = true) {
   if (render) updateTransform();
 }
 
+function setHeaderLoading(name) {
+  el.projectTitle.textContent = name || 'Loading…';
+  el.projectMeta.textContent = 'Loading project data…';
+  el.statusPill.textContent = '…';
+  el.statusPill.className = 'status-pill pending';
+  el.metricStatus.textContent = '—';
+  el.metricRun.textContent = '—';
+  el.metricSource.textContent = '—';
+  el.metricPublic.textContent = '—';
+}
+
+function setHeaderError(name, message) {
+  el.projectTitle.textContent = name || 'Error';
+  el.projectMeta.textContent = message;
+  el.statusPill.textContent = 'ERROR';
+  el.statusPill.className = 'status-pill fail';
+  el.metricStatus.textContent = 'ERROR';
+}
+
 function attachEvents() {
   el.projectList.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-project-id]');
     if (!button) return;
-    await loadProject(button.dataset.projectId);
+    const customPath = button.dataset.customPath || null;
+    const projectName = button.querySelector('strong')?.textContent || button.dataset.projectId;
+    setHeaderLoading(projectName);
+    try {
+      await loadProject(button.dataset.projectId, customPath);
+    } catch (err) {
+      setHeaderError(projectName, err.message);
+      console.error(err);
+    }
   });
 
   el.refreshBtn.addEventListener('click', async () => {
-    if (state.currentProjectId) await loadProject(state.currentProjectId);
+    if (!state.currentProjectId) return;
+    setHeaderLoading(state.bundle?.project?.name);
+    try {
+      await loadProject(state.currentProjectId, state.currentCustomPath);
+    } catch (err) {
+      setHeaderError(state.bundle?.project?.name, err.message);
+      console.error(err);
+    }
+  });
+
+  el.loadCustomBtn.addEventListener('click', async () => {
+    const customPath = el.customPathInput.value.trim();
+    if (!customPath) return;
+    try {
+      await loadProject('custom', customPath);
+    } catch (err) {
+      alert(`Failed to load custom project path:\n${err.message}`);
+    }
+  });
+
+  let suggestTimer = null;
+  let activeSuggestion = -1;
+
+  function hideSuggestions() {
+    el.pathSuggestions.classList.add('hidden');
+    el.pathSuggestions.innerHTML = '';
+    activeSuggestion = -1;
+  }
+
+  function showSuggestions(dirs) {
+    if (!dirs.length) { hideSuggestions(); return; }
+    activeSuggestion = -1;
+    el.pathSuggestions.innerHTML = dirs.map((d, i) =>
+      `<div class="path-suggestion" data-idx="${i}" data-path="${escapeHtml(d)}">${escapeHtml(d)}</div>`
+    ).join('');
+    el.pathSuggestions.classList.remove('hidden');
+  }
+
+  el.pathSuggestions.addEventListener('mousedown', async (e) => {
+    const item = e.target.closest('[data-path]');
+    if (!item) return;
+    e.preventDefault();
+    el.customPathInput.value = item.dataset.path;
+    hideSuggestions();
+    fetchSuggestions(item.dataset.path + '/');
+  });
+
+  async function fetchSuggestions(val) {
+    try {
+      const data = await api(`/api/fs/dirs?path=${encodeURIComponent(val)}`);
+      showSuggestions(data.dirs || []);
+    } catch { hideSuggestions(); }
+  }
+
+  el.customPathInput.addEventListener('input', () => {
+    clearTimeout(suggestTimer);
+    const val = el.customPathInput.value;
+    if (!val) { hideSuggestions(); return; }
+    suggestTimer = setTimeout(() => fetchSuggestions(val), 120);
+  });
+
+  el.customPathInput.addEventListener('focus', () => {
+    const val = el.customPathInput.value;
+    if (val) fetchSuggestions(val);
+    else fetchSuggestions('');
+  });
+
+  el.customPathInput.addEventListener('blur', () => {
+    setTimeout(hideSuggestions, 150);
+  });
+
+  el.customPathInput.addEventListener('keydown', async (event) => {
+    const items = el.pathSuggestions.querySelectorAll('.path-suggestion');
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      activeSuggestion = Math.min(activeSuggestion + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestion));
+      if (items[activeSuggestion]) el.customPathInput.value = items[activeSuggestion].dataset.path;
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      activeSuggestion = Math.max(activeSuggestion - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestion));
+      if (items[activeSuggestion]) el.customPathInput.value = items[activeSuggestion].dataset.path;
+      return;
+    }
+    if (event.key === 'Tab' && !el.pathSuggestions.classList.contains('hidden')) {
+      event.preventDefault();
+      const first = items[activeSuggestion >= 0 ? activeSuggestion : 0];
+      if (first) { el.customPathInput.value = first.dataset.path; fetchSuggestions(first.dataset.path + '/'); }
+      return;
+    }
+    if (event.key === 'Enter') {
+      const customPath = el.customPathInput.value.trim();
+      if (!customPath) return;
+      try {
+        await loadProject('custom', customPath);
+      } catch (err) {
+        alert(`Failed to load custom project path:\n${err.message}`);
+      }
+    }
   });
 
   el.resetViewBtn.addEventListener('click', () => resetView(true));
@@ -413,13 +628,37 @@ function attachEvents() {
     el.viewport.classList.remove('dragging');
   });
 
+  el.saveProjectBtn.addEventListener('click', saveCurrentAsProject);
+
+  el.projectList.addEventListener('click', async (event) => {
+    const removeBtn = event.target.closest('[data-remove-id]');
+    if (!removeBtn) return;
+    event.stopPropagation();
+    const id = removeBtn.dataset.removeId;
+    if (!confirm(`Remove project "${id}" from the list?`)) return;
+    try {
+      await api(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      state.projects = state.projects.filter((p) => p.id !== id);
+      if (state.currentProjectId === id) {
+        state.currentProjectId = state.projects[0]?.id || null;
+        state.currentCustomPath = null;
+        if (state.currentProjectId) await loadProject(state.currentProjectId);
+        else renderProjects();
+      } else {
+        renderProjects();
+      }
+    } catch (err) {
+      alert(`Could not remove project: ${err.message}`);
+    }
+  }, true);
+
   el.autoRefresh.addEventListener('change', () => {
     if (state.autoTimer) clearInterval(state.autoTimer);
     state.autoTimer = null;
     if (el.autoRefresh.checked) {
       state.autoTimer = setInterval(async () => {
         if (state.currentProjectId) {
-          try { await loadProject(state.currentProjectId); } catch (err) { console.error(err); }
+          try { await loadProject(state.currentProjectId, state.currentCustomPath); } catch (err) { console.error(err); }
         }
       }, 5000);
     }
