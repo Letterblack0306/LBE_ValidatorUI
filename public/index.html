@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LetterBlack Truth Console</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">LB</div>
+        <div>
+          <h1>Truth Console</h1>
+          <p>Proof-session viewer</p>
+        </div>
+      </div>
+
+      <section class="panel compact">
+        <div class="section-title">Projects</div>
+        <div id="projectList" class="project-list"></div>
+      </section>
+
+      <section class="panel compact">
+        <div class="section-title">Controls</div>
+        <button id="refreshBtn" class="btn primary">Refresh proof</button>
+        <button id="resetViewBtn" class="btn">Reset view</button>
+        <div class="zoom-row">
+          <button id="zoomOutBtn" class="btn small">−</button>
+          <div id="zoomReadout" class="zoom-readout">100%</div>
+          <button id="zoomInBtn" class="btn small">+</button>
+        </div>
+        <label class="toggle">
+          <input id="autoRefresh" type="checkbox" />
+          <span>Auto refresh</span>
+        </label>
+      </section>
+
+      <section class="panel compact">
+        <div class="section-title">Legend</div>
+        <div class="legend-line"><span class="dot pass"></span>PASS / READY</div>
+        <div class="legend-line"><span class="dot fail"></span>FAIL / BLOCKED</div>
+        <div class="legend-line"><span class="dot warn"></span>WARN / UNKNOWN</div>
+        <div class="legend-line"><span class="dot pending"></span>PENDING / SKIPPED</div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="projectTitle">No project loaded</h2>
+          <div id="projectMeta" class="meta-line">Configure projects in config/projects.json</div>
+        </div>
+        <div id="statusPill" class="status-pill unknown">UNKNOWN</div>
+      </header>
+
+      <section class="summary-grid">
+        <div class="metric-card">
+          <span>Status</span>
+          <strong id="metricStatus">—</strong>
+        </div>
+        <div class="metric-card">
+          <span>Run ID</span>
+          <strong id="metricRun">—</strong>
+        </div>
+        <div class="metric-card">
+          <span>Source HEAD</span>
+          <strong id="metricSource">—</strong>
+        </div>
+        <div class="metric-card">
+          <span>Public HEAD</span>
+          <strong id="metricPublic">—</strong>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="canvas-panel">
+          <div class="canvas-toolbar">
+            <div class="section-title">Module Connection Map</div>
+            <input id="filterInput" class="filter-input" placeholder="Filter nodes/checks…" />
+          </div>
+          <div id="canvasViewport" class="canvas-viewport">
+            <div id="canvasSurface" class="canvas-surface">
+              <svg id="edgeLayer" class="edge-layer"></svg>
+              <div id="nodeLayer" class="node-layer"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="details-panel">
+          <div class="section-title">Selected Evidence</div>
+          <div id="detailsEmpty" class="empty-state">Click a node or table row.</div>
+          <div id="detailsContent" class="details-content hidden"></div>
+        </aside>
+      </div>
+
+      <section class="table-panel">
+        <div class="table-header">
+          <div class="section-title">Spreadsheet View</div>
+          <div id="rowCount" class="meta-line">0 rows</div>
+        </div>
+        <div class="table-wrap">
+          <table id="nodeTable">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>ID</th>
+                <th>Label</th>
+                <th>Parent</th>
+                <th>Target Action</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

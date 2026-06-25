@@ -1,0 +1,16 @@
+{
+  "projects": [
+    {
+      "id": "gpt-sync",
+      "name": "GPT Sync",
+      "root": "../../..",
+      "truth": "../../../.truth/runs/latest/summary.json"
+    },
+    {
+      "id": "sample",
+      "name": "Sample Truth Project",
+      "root": "./sample-project",
+      "truth": "./sample-project/.truth/runs/2026-06-25T13-55-22Z/summary.json"
+    }
+  ]
+}

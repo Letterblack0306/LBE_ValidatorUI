@@ -1,0 +1,28 @@
+{
+  "project": "LBE Sentinel",
+  "releaseDir": "release-public",
+  "publicRepo": "https://github.com/Letterblack0306/LetterBlack-Sentinel.git",
+  "buildCommand": "npm run build:public-sdk",
+  "requiredReadmeSections": [
+    "Install",
+    "Usage",
+    "Public Scope",
+    "Security",
+    "Support"
+  ],
+  "forbiddenPatterns": [
+    ".env",
+    "PRIVATE_KEY",
+    "PUBLIC_REPO_TOKEN",
+    "NPM_TOKEN",
+    "internal mechanism",
+    "private repo",
+    "Z:/",
+    "G:/Developments",
+    "H:/Brew_Repo",
+    "C:/Users/prave"
+  ],
+  "allowDirty": false,
+  "maxScanBytes": 2000000,
+  "cloneDepth": 1
+}

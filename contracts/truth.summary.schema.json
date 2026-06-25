@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "truth.summary.v1",
+  "title": "Truth Summary v1",
+  "type": "object",
+  "required": ["schema", "runId", "status"],
+  "properties": {
+    "schema": { "const": "truth.summary.v1" },
+    "project": { "type": "string" },
+    "runId": { "type": "string" },
+    "status": { "type": "string" },
+    "sourceHead": { "type": "string" },
+    "remoteHead": { "type": "string" },
+    "publicHead": { "type": "string" },
+    "branch": { "type": "string" },
+    "repo": { "type": "string" },
+    "startedAt": { "type": "string" },
+    "finishedAt": { "type": "string" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "type": "string" },
+          "parent": { "type": ["string", "null"] },
+          "targetAction": { "type": ["string", "null"] },
+          "connectedTo": { "type": "object" },
+          "evidence": {}
+        },
+        "additionalProperties": true
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["moduleId", "status"],
+        "properties": {
+          "moduleId": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string" },
+          "parent": { "type": ["string", "null"] },
+          "targetAction": { "type": ["string", "null"] },
+          "connectedTo": {
+            "type": "object",
+            "properties": {
+              "left": { "type": "string" },
+              "right": { "type": "string" }
+            },
+            "additionalProperties": true
+          },
+          "status": { "type": "string" },
+          "evidence": {}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
