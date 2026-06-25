@@ -643,7 +643,7 @@ class ProofSession {
     this.addCheck({
       id: 'public_repo_matches_release',
       label: 'Public clone matches local release output',
-      status: missing.length || mismatched.length ? 'FAIL' : 'PASS',
+      status: missing.length || mismatched.length || extra.length ? 'FAIL' : 'PASS',
       parent: 'public_repo_head',
       targetAction: 'compare_public_clone',
       evidence: ['public-clone-tree.txt', 'public-compare.json'],
