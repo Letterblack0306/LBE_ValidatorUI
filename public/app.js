@@ -1,3 +1,5 @@
+import { mountRuntimeHealthPanel } from './runtime-health/mount-runtime-health.mjs';
+
 async function api(url, options) {
   const res = await fetch(url, options);
   if (!res.ok) {
@@ -60,7 +62,13 @@ const el = {
   customPathInput: document.getElementById('customPathInput'),
   loadCustomBtn: document.getElementById('loadCustomBtn'),
   saveProjectBtn: document.getElementById('saveProjectBtn'),
-  pathSuggestions: document.getElementById('pathSuggestions')
+  pathSuggestions: document.getElementById('pathSuggestions'),
+  summaryGrid: document.querySelector('.summary-grid'),
+  workspace: document.querySelector('.workspace'),
+  tablePanel: document.querySelector('.table-panel'),
+  viewProofBtn: document.getElementById('viewProofBtn'),
+  viewHealthBtn: document.getElementById('viewHealthBtn'),
+  runtimeHealthRoot: document.getElementById('runtime-health-root')
 };
 
 function statusClass(status) {
@@ -663,12 +671,37 @@ function attachEvents() {
       }, 5000);
     }
   });
+
+  el.viewProofBtn.addEventListener('click', () => switchView('proof'));
+  el.viewHealthBtn.addEventListener('click', () => switchView('health'));
+}
+
+function switchView(viewName) {
+  if (viewName === 'proof') {
+    el.viewProofBtn.classList.add('primary');
+    el.viewHealthBtn.classList.remove('primary');
+    el.summaryGrid.classList.remove('hidden');
+    el.workspace.classList.remove('hidden');
+    el.tablePanel.classList.remove('hidden');
+    el.runtimeHealthRoot.classList.add('hidden');
+  } else if (viewName === 'health') {
+    el.viewProofBtn.classList.remove('primary');
+    el.viewHealthBtn.classList.add('primary');
+    el.summaryGrid.classList.add('hidden');
+    el.workspace.classList.add('hidden');
+    el.tablePanel.classList.add('hidden');
+    el.runtimeHealthRoot.classList.remove('hidden');
+  }
 }
 
 async function main() {
   attachEvents();
   updateTransform();
   try {
+    mountRuntimeHealthPanel(el.runtimeHealthRoot, {
+      expectedRelayPort: 4424,
+      autoRefreshMs: 3000
+    });
     await loadProjects();
   } catch (err) {
     el.projectTitle.textContent = 'Failed to load Truth Console';

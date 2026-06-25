@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LetterBlack Truth Console</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/runtime-health/runtime-health.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -16,6 +17,14 @@
           <p>Proof-session viewer</p>
         </div>
       </div>
+
+      <section class="panel compact">
+        <div class="section-title">Views</div>
+        <div class="view-selector" style="display: flex; gap: 6px; margin-top: 6px;">
+          <button id="viewProofBtn" class="btn primary" style="margin-top: 0; font-size: 11px; padding: 6px 8px;">Proof Graph</button>
+          <button id="viewHealthBtn" class="btn" style="margin-top: 0; font-size: 11px; padding: 6px 8px;">Runtime Health</button>
+        </div>
+      </section>
 
       <section class="panel compact">
         <div class="section-title">Projects</div>
@@ -124,6 +133,8 @@
           </table>
         </div>
       </section>
+
+      <div id="runtime-health-root" class="hidden"></div>
     </main>
   </div>
 

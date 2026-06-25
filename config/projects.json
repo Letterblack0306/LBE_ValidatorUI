@@ -1,3 +1,9 @@
 {
-  "projects": []
+  "projects": [
+    {
+      "id": "34-gpt-sync",
+      "name": "34_GPT Sync",
+      "root": "G:/Developments/34_GPT Sync"
+    }
+  ]
 }

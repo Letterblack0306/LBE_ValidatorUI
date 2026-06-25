@@ -353,6 +353,16 @@ tbody tr:hover, tbody tr.selected { background: rgba(139, 233, 106, 0.08); }
 .status-cell.warn { color: var(--warn); }
 .status-cell.pending { color: var(--pending); }
 
+/* Runtime Health View Layout */
+#runtime-health-root {
+  grid-row: 2 / span 3;
+  overflow-y: auto;
+  min-height: 0;
+}
+#runtime-health-root.hidden {
+  display: none !important;
+}
+
 @media (max-width: 1100px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
